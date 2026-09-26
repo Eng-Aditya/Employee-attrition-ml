@@ -492,19 +492,6 @@ if page == "👤 Employee Profile":
         use_container_width=True
     )
 
-    # ============================================================
-    # SHAP EXPLANATION
-    # ============================================================
-
-    st.divider()
-
-    st.subheader("🔍 Why is this employee at risk?")
-
-    st.write(
-        "SHAP explains which employee features contributed most "
-        "to the model's prediction."
-    )
-
 
     # ============================================================
     # SHAP EXPLANATION
@@ -535,6 +522,48 @@ if page == "👤 Employee Profile":
         # Get feature names
         feature_names = preprocessor.get_feature_names_out()
 
+        # Clean feature names for user-friendly display
+        feature_name_map = {
+            "BusinessTravel_Travel_Frequently": "Business Travel: Travel Frequently",
+            "BusinessTravel_Travel_Rarely": "Business Travel: Travel Rarely",
+            "BusinessTravel_Non-Travel": "Business Travel: Non-Travel",
+            "JobInvolvement": "Job Involvement",
+            "JobRole_Laboratory Technician": "Job Role: Laboratory Technician",
+            "JobLevel": "Job Level",
+            "PerformanceRating": "Performance Rating",
+            "DailyRate": "Daily Rate",
+            "HourlyRate": "Hourly Rate",
+            "MonthlyRate": "Monthly Rate",
+            "MonthlyIncome": "Monthly Income",
+            "NumCompaniesWorked": "Number of Companies Worked",
+            "YearsWithCurrManager": "Years With Current Manager",
+            "YearsAtCompany": "Years At Company",
+            "YearsInCurrentRole": "Years In Current Role",
+            "YearsSinceLastPromotion": "Years Since Last Promotion",
+            "TotalWorkingYears": "Total Working Years",
+            "TrainingTimesLastYear": "Training Times Last Year",
+            "JobSatisfaction": "Job Satisfaction",
+            "EnvironmentSatisfaction": "Environment Satisfaction",
+            "RelationshipSatisfaction": "Relationship Satisfaction",
+            "WorkLifeBalance": "Work Life Balance",
+            "DistanceFromHome": "Distance From Home",
+            "PercentSalaryHike": "Percent Salary Hike",
+            "OverTime_Yes": "OverTime: Yes",
+            "OverTime_No": "OverTime: No",
+            "Age": "Age"
+        }
+
+        clean_feature_names = []
+
+        for name in feature_names:
+            # Remove preprocessing prefixes
+            clean_name = name.replace("num__", "").replace("cat__", "")
+
+            # Use friendly name if available
+            clean_name = feature_name_map.get(clean_name, clean_name)
+
+            clean_feature_names.append(clean_name)
+
         # Background data for SHAP
         background_data = X.sample(
             n=min(100, len(X)),
@@ -560,9 +589,23 @@ if page == "👤 Employee Profile":
 
         # Create SHAP dataframe
         shap_df = pd.DataFrame({
-            "Feature": feature_names,
+            "Feature": clean_feature_names,
             "SHAP Value": employee_shap_values
         })
+
+        # Calculate importance
+        # Combine OverTime Yes/No into one user-friendly feature
+        shap_df["Feature"] = shap_df["Feature"].replace({
+            "OverTime: Yes": "OverTime",
+            "OverTime: No": "OverTime"
+        })
+
+        # Combine duplicate features after grouping
+        shap_df = (
+            shap_df
+            .groupby("Feature", as_index=False)["SHAP Value"]
+            .sum()
+        )
 
         # Calculate importance
         shap_df["Importance"] = (
@@ -579,6 +622,39 @@ if page == "👤 Employee Profile":
             .head(10)
             .sort_values("SHAP Value")
         )
+
+        # Explain the prediction in simple language
+        positive_factors = (
+            shap_df[shap_df["SHAP Value"] > 0]
+            .sort_values("SHAP Value", ascending=False)
+            .head(3)
+        )
+
+        negative_factors = (
+            shap_df[shap_df["SHAP Value"] < 0]
+            .sort_values("SHAP Value")
+            .head(3)
+        )
+
+        if len(positive_factors) > 0:
+            positive_names = positive_factors["Feature"].tolist()
+
+            st.info(
+                "🔎 **Why is this employee at risk?** "
+                "The factors pushing the prediction toward higher attrition risk "
+                "include: "
+                + ", ".join(positive_names)
+                + "."
+            )
+
+        if len(negative_factors) > 0:
+            negative_names = negative_factors["Feature"].tolist()
+
+            st.success(
+                "🛡️ **Factors reducing the predicted risk:** "
+                + ", ".join(negative_names)
+                + "."
+            )
 
         # Create chart
         fig_shap = px.bar(
