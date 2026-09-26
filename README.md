@@ -10,7 +10,7 @@ The system combines machine learning, risk scoring, SHAP explainability, and an 
 
 🌐 **Streamlit App:**
 
-https://employee-attrition-ml-figlqr98zimvucvhxkkl.streamlit.app/
+https://employee-attrition-ml-figlqr98zivmvucvvhxkkl.streamlit.app/
 
 ---
 
@@ -305,7 +305,7 @@ The application is deployed using Streamlit.
 
 Live application:
 
-https://employee-attrition-ml-figlqr98zimvucvhxkkl.streamlit.app/
+https://employee-attrition-ml-figlqr98zivmvucvvhxkkl.streamlit.app/
 
 The deployed application automatically uses the code and model files available in the GitHub repository.
 
